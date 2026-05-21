@@ -34,16 +34,3 @@ Mapowanie wymagań z opisu projektu na realizację w repozytorium.
 | **Migracje definiują schemat** | Każda zmiana = osobny plik migracji |
 | **Seedery** | `DatabaseSeeder` z testowymi danymi |
 | **README z instrukcją** | `README.md` w korzeniu |
-
-## 4. Kryteria oceny
-
-| Kryterium | Gdzie szukać |
-|-----------|--------------|
-| **Model ERD** | `docs/erd.md` (mermaid + tabela polityki usuwania) |
-| **Implementacja bazy danych (migracje)** | `database/migrations/` (7 migracji domenowych + Laravelowe) |
-| **Implementacja więzów integralności** | Każda migracja w `2026_*` — `constrained()->cascadeOnDelete()` / `restrictOnDelete()` / `nullOnDelete()`, indeksy, unique |
-| **Poprawność działania GUI** | `resources/views/` + ekrany dashboard / lista / formularz dla każdej roli, autoryzacja via Policies |
-| **Użycie Dockera** | `docker compose up -d --build` startuje całość w 3-5 min; `docs/docker.md` opisuje architekturę |
-| **Seedery i migracje** | `php artisan migrate --seed` jest częścią entrypointu, działa od zera |
-| **Testowanie i optymalizacja** | `tests/Feature/` + sekcja "Optymalizacja zapytań" w `docs/database.md` |
-| **Dokumentacja techniczna** | `README.md` + `docs/{erd,database,features,docker,deployment,versioning,compliance}.md` |
