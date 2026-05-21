@@ -1,7 +1,5 @@
 # Diagram ERD
 
-Diagram klasyczny "Crow's Foot" zrealizowany w mermaid (GitHub i większość edytorów Markdown renderuje go natywnie).
-
 ```mermaid
 erDiagram
     USERS ||--o{ VEHICLES                : "assigned_user_id"
