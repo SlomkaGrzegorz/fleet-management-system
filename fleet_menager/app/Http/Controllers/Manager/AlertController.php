@@ -7,13 +7,13 @@ namespace App\Http\Controllers\Manager;
 use App\Http\Controllers\Controller;
 use App\Models\Alert;
 use App\Models\Event;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 /**
  * Statusy upływających terminów (ubezpieczenia, przeglądy, itp.).
- * Lista bazuje na eventach z expiry_date - zarówno tych, które
- * są blisko terminu, jak i tych przeterminowanych.
  */
 class AlertController extends Controller
 {
@@ -43,12 +43,24 @@ class AlertController extends Controller
         return view('manager.alerts.index', compact('expiring', 'overdue', 'stored'));
     }
 
-    public function dismiss(Alert $alert): RedirectResponse
+    /**
+     * Endpoint obsługuje zarówno klasyczny form-POST (redirect)
+     * jak i AJAX (zwraca JSON). Decyzja na podstawie nagłówka.
+     */
+    public function dismiss(Request $request, Alert $alert): RedirectResponse|JsonResponse
     {
         $this->authorize('dismiss', $alert);
 
         $alert->update(['dismissed' => true]);
 
-        return back()->with('status', 'Alert oznaczony jako obsłużony.');
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'ok'      => true,
+                'alertId' => $alert->id,
+                'message' => __('Alert oznaczony jako obsłużony.'),
+            ]);
+        }
+
+        return back()->with('status', __('Alert oznaczony jako obsłużony.'));
     }
 }

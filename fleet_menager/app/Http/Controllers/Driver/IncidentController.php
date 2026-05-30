@@ -4,12 +4,17 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Driver;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreIncidentRequest;
+use App\Mail\IncidentReported;
 use App\Models\Event;
+use App\Models\User;
 use App\Models\Vehicle;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
 
 /**
@@ -40,8 +45,6 @@ class IncidentController extends Controller
     {
         $this->authorize('create', Event::class);
 
-        // Kierowca może zgłaszać tylko dla swoich pojazdów.
-        // Admin/manager wpadający tu - dla wszystkich aktywnych.
         $vehicles = $request->user()->isDriver()
             ? $request->user()->assignedVehicles()->get()
             : Vehicle::query()->whereNot('status', Vehicle::STATUS_RETIRED)->get();
@@ -57,9 +60,24 @@ class IncidentController extends Controller
 
         $event = Event::create($data);
 
+        // Logowanie akcji biznesowej
+        Log::channel('fleet')->info('Incident reported', [
+            'event_id'   => $event->id,
+            'type'       => $event->type,
+            'vehicle_id' => $event->vehicle_id,
+            'driver_id'  => $event->reported_by,
+        ]);
+
+        // Wysyłka maila do wszystkich managerów (driver 'log' = trafia do storage/logs)
+        $event->loadMissing(['vehicle', 'reporter']);
+        $managers = User::query()->where('role', UserRole::Manager->value)->get();
+        foreach ($managers as $manager) {
+            Mail::to($manager->email)->send(new IncidentReported($event));
+        }
+
         return redirect()
             ->route('driver.incidents.show', $event)
-            ->with('status', 'Zgłoszenie zostało zapisane.');
+            ->with('status', __('Zgłoszenie zostało zapisane.'));
     }
 
     public function show(Event $incident): View

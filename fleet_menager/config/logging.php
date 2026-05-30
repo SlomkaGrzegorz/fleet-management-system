@@ -73,6 +73,17 @@ return [
             'replace_placeholders' => true,
         ],
 
+        // Dedykowany kanał na akcje biznesowe Fleet Managera
+        // (logowanie userów, dodawanie kosztów, kasowanie zgłoszeń, itd.).
+        // Plik dzienny: storage/logs/fleet-YYYY-MM-DD.log
+        'fleet' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/fleet.log'),
+            'level' => env('LOG_LEVEL', 'info'),
+            'days' => env('LOG_DAILY_DAYS', 30),
+            'replace_placeholders' => true,
+        ],
+
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),

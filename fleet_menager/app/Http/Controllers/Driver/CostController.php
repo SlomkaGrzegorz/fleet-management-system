@@ -12,6 +12,7 @@ use App\Models\Vehicle;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 /**
@@ -56,7 +57,7 @@ class CostController extends Controller
         $data = $request->validated();
         $data['entered_by'] = $request->user()->id;
 
-        DB::transaction(function () use ($request, $data): void {
+        $cost = DB::transaction(function () use ($request, $data): Cost {
             $cost = Cost::create([
                 'vehicle_id'  => $data['vehicle_id'],
                 'event_id'    => $data['event_id'] ?? null,
@@ -80,11 +81,22 @@ class CostController extends Controller
                     'size_bytes' => $file->getSize(),
                 ]);
             }
+
+            return $cost;
         });
+
+        Log::channel('fleet')->info('Cost entered', [
+            'cost_id'    => $cost->id,
+            'category'   => $cost->category,
+            'amount'     => (float) $cost->amount,
+            'vehicle_id' => $cost->vehicle_id,
+            'user_id'    => $cost->entered_by,
+            'has_invoice'=> $request->hasFile('invoice'),
+        ]);
 
         return redirect()
             ->route('driver.costs.index')
-            ->with('status', 'Koszt został zapisany.');
+            ->with('status', __('Koszt został zapisany.'));
     }
 
     public function show(Cost $cost): View
@@ -101,14 +113,14 @@ class CostController extends Controller
     private function categoryOptions(): array
     {
         return [
-            Cost::CATEGORY_FUEL      => 'Paliwo',
-            Cost::CATEGORY_SERVICE   => 'Serwis',
-            Cost::CATEGORY_REPAIR    => 'Naprawa',
-            Cost::CATEGORY_INSURANCE => 'Ubezpieczenie',
-            Cost::CATEGORY_TAX       => 'Podatek',
-            Cost::CATEGORY_FINE      => 'Mandat',
-            Cost::CATEGORY_PARTS     => 'Części',
-            Cost::CATEGORY_OTHER     => 'Inne',
+            Cost::CATEGORY_FUEL      => __('Paliwo'),
+            Cost::CATEGORY_SERVICE   => __('Serwis'),
+            Cost::CATEGORY_REPAIR    => __('Naprawa'),
+            Cost::CATEGORY_INSURANCE => __('Ubezpieczenie'),
+            Cost::CATEGORY_TAX       => __('Podatek'),
+            Cost::CATEGORY_FINE      => __('Mandat'),
+            Cost::CATEGORY_PARTS     => __('Części'),
+            Cost::CATEGORY_OTHER     => __('Inne'),
         ];
     }
 }
