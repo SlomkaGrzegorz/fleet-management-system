@@ -7,9 +7,12 @@ namespace App\Http\Controllers\Manager;
 use App\Http\Controllers\Controller;
 use App\Models\Cost;
 use App\Services\CostCsvExporter;
+use App\Mail\CostReportMail;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Http\RedirectResponse;
+
 
 class CostController extends Controller
 {
@@ -35,12 +38,26 @@ class CostController extends Controller
         ]);
     }
 
-    public function export(Request $request, CostCsvExporter $exporter): StreamedResponse
+    public function export(Request $request, CostCsvExporter $exporter): RedirectResponse
     {
+
         $this->authorize('export', Cost::class);
 
         $filters = $request->only(['from', 'to', 'category', 'vehicle_id']);
 
-        return $exporter->streamResponse($filters);
+
+        $response = $exporter->streamResponse($filters);
+        ob_start();
+        $response->sendContent();
+        $csvContent = ob_get_clean();
+
+
+        $userEmail = auth()->user()->email;
+
+        $fileName = 'raport_kosztow_' . now()->format('Y-m-d') . '.csv';
+
+        Mail::to($userEmail)->send(new CostReportMail($csvContent, $fileName));
+
+        return back()->with('success', 'Raport został pomyślnie wygenerowany i wysłany na Twój adres e-mail (' . $userEmail . ')!');
     }
 }

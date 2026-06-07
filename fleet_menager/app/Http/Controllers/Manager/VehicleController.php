@@ -8,24 +8,28 @@ use App\Http\Controllers\Controller;
 use App\Models\Vehicle;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\Cache;
 
 class VehicleController extends Controller
 {
     public function index(Request $request): View
     {
         $this->authorize('viewAny', Vehicle::class);
+        $cacheKey = 'vehicles_list_' . md5($request->getQueryString() ?? '');
 
-        $vehicles = Vehicle::query()
-            ->with('assignedDriver:id,name')
-            ->when($request->string('status')->toString(), fn ($q, $s) => $q->where('status', $s))
-            ->when($request->string('q')->toString(), fn ($q, $term) => $q->where(function ($qq) use ($term) {
-                $qq->where('plate_number', 'like', "%{$term}%")
-                   ->orWhere('make', 'like', "%{$term}%")
-                   ->orWhere('model', 'like', "%{$term}%");
-            }))
-            ->orderBy('plate_number')
-            ->paginate(20)
-            ->withQueryString();
+        $vehicles = Cache::remember($cacheKey, 60, function () use ($request) {
+            return Vehicle::query()
+                ->with('assignedDriver:id,name')
+                ->when($request->string('status')->toString(), fn ($q, $s) => $q->where('status', $s))
+                ->when($request->string('q')->toString(), fn ($q, $term) => $q->where(function ($qq) use ($term) {
+                    $qq->where('plate_number', 'like', "%{$term}%")
+                        ->orWhere('make', 'like', "%{$term}%")
+                        ->orWhere('model', 'like', "%{$term}%");
+                }))
+                ->orderBy('plate_number')
+                ->paginate(20)
+                ->withQueryString();
+        });
 
         return view('manager.vehicles.index', compact('vehicles'));
     }
